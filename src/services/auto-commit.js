@@ -9,32 +9,56 @@ let lastModifiedTime = Date.now();
 
 // Commit and push the changes
 const commitAndPush = () => {
-    // First pull the remote changes to avoid conflicts
-    exec('git pull origin main --rebase', { env: { ...process.env, GIT_ASKPASS: "echo", GIT_PASSWORD: process.env.GITHUB_TOKEN } }, (pullError, pullStdout, pullStderr) => {
-        if (pullError) {
-            console.error(`Error pulling changes: ${pullError.message}`);
+    // First, stash any uncommitted changes to avoid conflict with pull
+    exec('git stash', { env: { ...process.env, GIT_ASKPASS: "echo", GIT_PASSWORD: process.env.GITHUB_TOKEN } }, (stashError, stashStdout, stashStderr) => {
+        if (stashError) {
+            console.error(`Error stashing changes: ${stashError.message}`);
             return;
         }
-        console.log(`Git pull output:\n${pullStdout}`);
-        if (pullStderr) {
-            console.error(`Git pull errors:\n${pullStderr}`);
+        console.log(`Git stash output:\n${stashStdout}`);
+        if (stashStderr) {
+            console.error(`Git stash errors:\n${stashStderr}`);
         }
 
-        // Once pull is successful, commit and push the changes
-        exec(`git add ${quotesFile} && git commit -m "${commitMessage}" && git push origin main`, 
-            { env: { ...process.env, GIT_ASKPASS: "echo", GIT_PASSWORD: process.env.GITHUB_TOKEN } }, // Ensure personal access token is used
-            (commitError, commitStdout, commitStderr) => {
-                if (commitError) {
-                    console.error(`Error committing and pushing changes: ${commitError.message}`);
-                    return;
-                }
-                console.log(`Git output:\n${commitStdout}`);
-                if (commitStderr) {
-                    console.error(`Git errors:\n${commitStderr}`);
-                }
-                console.log(`Changes committed and pushed successfully to https://github.com/AntiParty/Anti-chat-quotes`);
+        // Now, pull the remote changes to avoid conflicts
+        exec('git pull origin main --rebase', { env: { ...process.env, GIT_ASKPASS: "echo", GIT_PASSWORD: process.env.GITHUB_TOKEN } }, (pullError, pullStdout, pullStderr) => {
+            if (pullError) {
+                console.error(`Error pulling changes: ${pullError.message}`);
+                return;
             }
-        );
+            console.log(`Git pull output:\n${pullStdout}`);
+            if (pullStderr) {
+                console.error(`Git pull errors:\n${pullStderr}`);
+            }
+
+            // Once pull is successful, commit and push the changes
+            exec(`git add ${quotesFile} && git commit -m "${commitMessage}" && git push origin main`, 
+                { env: { ...process.env, GIT_ASKPASS: "echo", GIT_PASSWORD: process.env.GITHUB_TOKEN } }, 
+                (commitError, commitStdout, commitStderr) => {
+                    if (commitError) {
+                        console.error(`Error committing and pushing changes: ${commitError.message}`);
+                        return;
+                    }
+                    console.log(`Git output:\n${commitStdout}`);
+                    if (commitStderr) {
+                        console.error(`Git errors:\n${commitStderr}`);
+                    }
+                    console.log(`Changes committed and pushed successfully to https://github.com/AntiParty/Anti-chat-quotes`);
+
+                    // After committing and pushing, apply the stashed changes
+                    exec('git stash pop', { env: { ...process.env, GIT_ASKPASS: "echo", GIT_PASSWORD: process.env.GITHUB_TOKEN } }, (popError, popStdout, popStderr) => {
+                        if (popError) {
+                            console.error(`Error applying stashed changes: ${popError.message}`);
+                            return;
+                        }
+                        console.log(`Git stash pop output:\n${popStdout}`);
+                        if (popStderr) {
+                            console.error(`Git stash pop errors:\n${popStderr}`);
+                        }
+                    });
+                }
+            );
+        });
     });
 };
 
