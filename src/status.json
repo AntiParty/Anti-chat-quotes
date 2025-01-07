@@ -1,0 +1,15 @@
+{
+  "commands": {
+    "status": true,
+    "toggle": true,
+    "remindme": true,
+    "addquote": true,
+    "quote": true,
+    "commands": true
+  },
+  "services": {
+    "discordService": true,
+    "auto-commit": true,
+    "tokenService": true
+  }
+}
